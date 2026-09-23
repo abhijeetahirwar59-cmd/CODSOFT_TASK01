@@ -1,0 +1,93 @@
+import json
+import os
+import tkinter as tk
+from tkinter import messagebox, simpledialog
+
+DATA_FILE = "tasks.json"
+
+def load_tasks():
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            pass
+    return []
+
+def save_tasks():
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(tasks, f, indent=2, ensure_ascii=False)
+
+def refresh():
+    listbox.delete(0, tk.END)
+    for i, task in enumerate(tasks, start=1):
+        status = "✓" if task["done"] else " "
+        listbox.insert(tk.END, f"{i}. [{status}] {task['title']}")
+
+def add_task():
+    title = entry.get().strip()
+    if not title:
+        messagebox.showwarning("Input", "Please enter a task.")
+        return
+    tasks.append({"title": title, "done": False})
+    entry.delete(0, tk.END)
+    save_tasks()
+    refresh()
+
+def selected_index():
+    selected = listbox.curselection()
+    if not selected:
+        messagebox.showwarning("Selection", "Please select a task.")
+        return None
+    return selected[0]
+
+def toggle_task():
+    idx = selected_index()
+    if idx is None:
+        return
+    tasks[idx]["done"] = not tasks[idx]["done"]
+    save_tasks()
+    refresh()
+
+def update_task():
+    idx = selected_index()
+    if idx is None:
+        return
+    new_title = simpledialog.askstring("Update Task", "Enter new task:", initialvalue=tasks[idx]["title"])
+    if new_title and new_title.strip():
+        tasks[idx]["title"] = new_title.strip()
+        save_tasks()
+        refresh()
+
+def delete_task():
+    idx = selected_index()
+    if idx is None:
+        return
+    if messagebox.askyesno("Delete", "Delete the selected task?"):
+        tasks.pop(idx)
+        save_tasks()
+        refresh()
+
+root = tk.Tk()
+root.title("To-Do List - CodSoft Task 1")
+root.geometry("600x500")
+root.resizable(False, False)
+
+tasks = load_tasks()
+
+tk.Label(root, text="TO-DO LIST", font=("Arial", 22, "bold")).pack(pady=15)
+entry = tk.Entry(root, font=("Arial", 14), width=38)
+entry.pack(pady=5)
+tk.Button(root, text="Add Task", command=add_task, width=18).pack(pady=8)
+
+listbox = tk.Listbox(root, font=("Arial", 13), width=55, height=13)
+listbox.pack(pady=10)
+
+buttons = tk.Frame(root)
+buttons.pack(pady=10)
+tk.Button(buttons, text="Complete / Undo", command=toggle_task, width=15).grid(row=0, column=0, padx=5)
+tk.Button(buttons, text="Update", command=update_task, width=12).grid(row=0, column=1, padx=5)
+tk.Button(buttons, text="Delete", command=delete_task, width=12).grid(row=0, column=2, padx=5)
+
+refresh()
+root.mainloop()
